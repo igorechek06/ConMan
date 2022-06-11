@@ -1,11 +1,12 @@
 extern crate clap;
 extern crate serde;
 
+mod app;
 mod args;
-mod manager;
 mod settings;
 mod util;
 
+use app::App;
 use args::{Action, Args};
 use clap::Parser;
 
@@ -24,38 +25,39 @@ pub fn run() -> i32 {
     return match result {
         Ok(..) => 0,
         Err(error) => {
-            eprintln!("{}", error);
+            eprintln!("Error :: {}", error);
             1
         }
     };
 }
 
 fn run_list(args: &Args) -> Result<(), String> {
-    println!("{}", args.force);
-    return Ok(());
+    let app = App::new()?;
+    
+    Ok(())
 }
 
 fn run_add(name: &String, args: &Args) -> Result<(), String> {
     println!("{} {}", name, args.force);
-    return Ok(());
+    Ok(())
 }
 
 fn run_del(name: &String, args: &Args) -> Result<(), String> {
     println!("{} {}", name, args.force);
-    return Ok(());
+    Ok(())
 }
 
 fn run_edit(name: &String, args: &Args) -> Result<(), String> {
     println!("{} {}", name, args.force);
-    return Ok(());
+    Ok(())
 }
 
 fn run_save(name: &String, path: &Option<String>, args: &Args) -> Result<(), String> {
     println!("{} {:?} {}", name, path, args.force);
-    return Ok(());
+    Ok(())
 }
 
 fn run_load(path: &String, name: &Option<String>, args: &Args) -> Result<(), String> {
     println!("{:?} {:?} {}", path, name, args.force);
-    return Ok(());
+    Ok(())
 }
