@@ -1,4 +1,4 @@
-use std::fs::{create_dir_all, read_dir, remove_dir_all, ReadDir};
+use std::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, ReadDir};
 use std::path::{Path, PathBuf};
 
 use regex::Regex;
@@ -20,7 +20,7 @@ pub fn get_path(path_type: &str) -> Result<PathBuf, String> {
     }
 
     if path.exists() && !path.is_dir() {
-        remove_dir_all(&path).or(Err(format!("Can't remove file ({})", path.display())))?;
+        remove_file(&path).or(Err(format!("Can't remove file ({})", path.display())))?;
     }
     if !path.exists() {
         create_dir_all(&path).or(Err(format!("Can't create dir ({})", path.display())))?;

@@ -1,5 +1,5 @@
 use crate::settings::Instruction;
-use crate::util::{get_path, listdir, get_file_name};
+use crate::util::{get_file_name, get_path, listdir};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
