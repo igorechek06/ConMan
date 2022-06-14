@@ -1,4 +1,4 @@
-use std::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, ReadDir};
+use std::fs::{create_dir_all, remove_file, ReadDir};
 use std::path::{Path, PathBuf};
 
 use regex::Regex;
@@ -19,18 +19,26 @@ pub fn get_path(path_type: &str) -> Result<PathBuf, String> {
         _ => {}
     }
 
+    check_dir(&path)?;
+
+    Ok(path)
+}
+
+pub fn check_dir<P: AsRef<Path>>(path: P) -> Result<(), String> {
+    let path = path.as_ref();
     if path.exists() && !path.is_dir() {
         remove_file(&path).or(Err(format!("Can't remove file ({})", path.display())))?;
     }
     if !path.exists() {
         create_dir_all(&path).or(Err(format!("Can't create dir ({})", path.display())))?;
     }
-
-    Ok(path)
+    Ok(())
 }
 
 pub fn listdir<P: AsRef<Path>>(path: P) -> Result<ReadDir, String> {
-    return read_dir(&path).or(Err(format!("Can't read dir ({})", path.as_ref().display())));
+    path.as_ref()
+        .read_dir()
+        .or(Err(format!("Can't read dir ({})", path.as_ref().display())))
 }
 
 pub fn get_file_name<P: AsRef<Path>>(path: P) -> Result<(String, Option<String>), String> {
@@ -44,12 +52,12 @@ pub fn get_file_name<P: AsRef<Path>>(path: P) -> Result<(String, Option<String>)
         .to_string();
 
     let result = regex.captures(&name).ok_or("Incorrect file name")?;
-    return Ok((
+    Ok((
         result
             .name("name")
             .ok_or("Incorrect file name")?
             .as_str()
             .to_string(),
         result.name("ext").map(|m| m.as_str().to_string()),
-    ));
+    ))
 }

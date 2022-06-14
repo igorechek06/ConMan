@@ -13,8 +13,6 @@ use app::App;
 use args::{Action, Args};
 use clap::Parser;
 
-use crate::util::get_file_name;
-
 /*
 TODO: Add color output
 TODO: Add locales
@@ -24,12 +22,12 @@ pub fn run() -> i32 {
     let args = Args::parse();
     let result = match &args.action {
         Action::Help => Ok(()),
-        Action::List => run_list(&args),
+        Action::List { name } => run_list(name, &args),
         Action::Add { name } => run_add(name, &args),
         Action::Del { name } => run_del(name, &args),
         Action::Edit { name } => run_edit(name, &args),
-        Action::Save { name, path } => run_save(name, path, &args),
-        Action::Load { file, name } => run_load(file, name, &args),
+        Action::Save { name, path } => run_save(name, path.as_ref(), &args),
+        Action::Load { file, name } => run_load(file, name.as_ref(), &args),
     };
 
     return match result {
@@ -41,40 +39,35 @@ pub fn run() -> i32 {
     };
 }
 
-fn run_list(args: &Args) -> Result<(), String> {
-    let app = App::new()?;
-    let mut output = String::new();
+fn run_list(names: &Vec<String>, args: &Args) -> Result<(), String> {
+    let app = App::new(&args)?;
+    let instructions = app.list(names)?;
+    let mut result = String::new();
 
-    if !app.instructions.is_empty() {
-        output += "Instructions\n\n";
-        for (path, inst_name) in app.instructions {
-            let inst_name = inst_name
-                .name
-                .unwrap_or(get_file_name(path)?.0);
-            output += format!("{}:\n", inst_name).as_str();
-            for (conf_name, configs) in &app.configs {
-                if *conf_name == inst_name {
-                    for conf in configs {
-                        output += format!("  - {}\n", get_file_name(conf)?.0).as_str();
-                    }
-                }
-            }
-        }
-    } else {
+    if instructions.is_empty() {
         return Err("Instructions not found".to_string());
     }
 
-    print!("{}", output);
+    for (inst_name, configs) in instructions {
+        result += format!("\n{}\n", inst_name).as_str();
+
+        for conf_name in configs {
+            result += format!("  {}\n", conf_name).as_str();
+        }
+    }
+
+    println!("{}", result.trim());
+
     Ok(())
 }
 
-fn run_add(name: &String, args: &Args) -> Result<(), String> {
-    println!("{} {}", name, args.force);
+fn run_add(name: &Vec<String>, args: &Args) -> Result<(), String> {
+    println!("{:?} {}", name, args.force);
     Ok(())
 }
 
-fn run_del(name: &String, args: &Args) -> Result<(), String> {
-    println!("{} {}", name, args.force);
+fn run_del(name: &Vec<String>, args: &Args) -> Result<(), String> {
+    println!("{:?} {}", name, args.force);
     Ok(())
 }
 
@@ -83,12 +76,12 @@ fn run_edit(name: &String, args: &Args) -> Result<(), String> {
     Ok(())
 }
 
-fn run_save(name: &String, path: &Option<String>, args: &Args) -> Result<(), String> {
+fn run_save(name: &String, path: Option<&String>, args: &Args) -> Result<(), String> {
     println!("{} {:?} {}", name, path, args.force);
     Ok(())
 }
 
-fn run_load(path: &String, name: &Option<String>, args: &Args) -> Result<(), String> {
+fn run_load(path: &String, name: Option<&String>, args: &Args) -> Result<(), String> {
     println!("{:?} {:?} {}", path, name, args.force);
     Ok(())
 }

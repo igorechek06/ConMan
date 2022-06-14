@@ -42,16 +42,19 @@ pub enum Action {
 
     // Instructions manager
     #[clap(about=src::help::LIST)]
-    List,
+    List {
+        #[clap(help=src::help::NAME)]
+        name: Vec<String>,
+    },
     #[clap(about=src::help::ADD)]
     Add {
         #[clap(help=src::help::NAME)]
-        name: String,
+        name: Vec<String>,
     },
     #[clap(about=src::help::DEL)]
     Del {
         #[clap(help=src::help::NAME)]
-        name: String,
+        name: Vec<String>,
     },
     #[clap(about=src::help::EDIT)]
     Edit {

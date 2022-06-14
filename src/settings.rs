@@ -7,8 +7,8 @@ use std::{collections::HashMap, fs::File, path::Path};
 pub struct Instruction {
     pub name: Option<String>,
     pub paths: Option<HashMap<String, String>>,
-    pub objects: Vec<String>,
-    pub secrets: Option<Vec<String>>,
+    pub objects: HashMap<String, Vec<String>>,
+    pub secrets: Option<HashMap<String, Vec<String>>>,
 }
 
 impl Instruction {
@@ -17,20 +17,25 @@ impl Instruction {
             "Can't open the file ({})",
             path.as_ref().display()
         )))?;
-        return from_reader(file).or(Err(format!(
+
+        let result: Self = from_reader(file).or(Err(format!(
             "Can't parse the file ({})",
             path.as_ref().display()
-        )));
+        )))?;
+
+        Ok(result)
     }
 
-    pub fn to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
+    pub fn _to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
         let file = File::create(&path).or(Err(format!(
             "Can't create the file ({})",
             path.as_ref().display()
         )))?;
-        return to_writer(file, self).or(Err(format!(
+        let result = to_writer(file, self).or(Err(format!(
             "Can't save the file ({})",
             path.as_ref().display()
-        )));
+        )))?;
+
+        Ok(result)
     }
 }
