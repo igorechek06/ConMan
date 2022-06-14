@@ -12,10 +12,11 @@ mod util;
 use app::App;
 use args::{Action, Args};
 use clap::Parser;
+use util::{err, path};
 
 /*
 TODO: Add color output
-TODO: Add locales
+TODO: Add i18n
 */
 
 pub fn run() -> i32 {
@@ -30,13 +31,7 @@ pub fn run() -> i32 {
         Action::Load { file, name } => run_load(file, name.as_ref(), &args),
     };
 
-    return match result {
-        Ok(..) => 0,
-        Err(error) => {
-            eprintln!("Error :: {}", error);
-            1
-        }
-    };
+    err(result)
 }
 
 fn run_list(names: &Vec<String>, args: &Args) -> Result<(), String> {
@@ -61,13 +56,45 @@ fn run_list(names: &Vec<String>, args: &Args) -> Result<(), String> {
     Ok(())
 }
 
-fn run_add(name: &Vec<String>, args: &Args) -> Result<(), String> {
-    println!("{:?} {}", name, args.force);
+fn run_add(names: &Vec<String>, args: &Args) -> Result<(), String> {
+    App::new(args)?;
+    let inst_path = path::get("CONMAN_INSTRUCTIONS")?;
+    let conf_path = path::get("CONMAN_CONFIGS")?;
+
+    for name in names {
+        let mut file = inst_path.clone();
+        let mut storage = conf_path.clone();
+
+        file.push(format!("{}.yml", name));
+        storage.push(format!("{}", name));
+
+        if file.exists() {
+            err::<(), _>(Err(format!("Instruction exists ({})", file.display())));
+        }
+
+        err(path::mkfile(file));
+        err(path::mkdir(storage));
+    }
+
     Ok(())
 }
 
-fn run_del(name: &Vec<String>, args: &Args) -> Result<(), String> {
-    println!("{:?} {}", name, args.force);
+fn run_del(names: &Vec<String>, args: &Args) -> Result<(), String> {
+    App::new(args)?;
+    let inst_path = path::get("CONMAN_INSTRUCTIONS")?;
+    let conf_path = path::get("CONMAN_CONFIGS")?;
+
+    for name in names {
+        let mut file = inst_path.clone();
+        let mut storage = conf_path.clone();
+
+        file.push(format!("{}.yml", name));
+        storage.push(format!("{}", name));
+
+        err(path::rm(file));
+        err(path::rm(storage));
+    }
+
     Ok(())
 }
 

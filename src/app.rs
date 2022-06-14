@@ -1,6 +1,6 @@
 use crate::args::Args;
 use crate::settings::Instruction;
-use crate::util::{get_file_name, get_path, listdir};
+use crate::util::path;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -15,26 +15,26 @@ impl App {
         let mut configs = HashMap::new();
 
         // Parse instructions
-        for inst in listdir(get_path("CONMAN_INSTRUCTIONS")?)? {
+        for inst in path::list(path::get("CONMAN_INSTRUCTIONS")?)? {
             let i = inst.or(Err("Can't get dir entry (instructions dir)".to_string()))?;
             instructions.insert(i.path(), Instruction::from_file(&i.path())?);
         }
 
         // Parse configs
-        for conf_dir in listdir(get_path("CONMAN_CONFIGS")?)? {
+        for conf_dir in path::list(path::get("CONMAN_CONFIGS")?)? {
             let conf_dir = conf_dir.or(Err("Can't get dir entry (config storage)".to_string()))?;
 
             if conf_dir.path().is_dir() {
                 let mut config_storage = Vec::new();
 
-                for conf in listdir(conf_dir.path())? {
+                for conf in path::list(conf_dir.path())? {
                     let conf = conf.or(Err("Can't get dir entry (config storage entry)"))?;
                     if conf.path().is_file() {
                         config_storage.push(conf.path());
                     }
                 }
 
-                configs.insert(get_file_name(conf_dir.path())?.0, config_storage);
+                configs.insert(path::name(conf_dir.path())?.0, config_storage);
             }
         }
 
@@ -47,7 +47,7 @@ impl App {
     pub fn list(&self, names: &Vec<String>) -> Result<HashMap<String, Vec<String>>, String> {
         let mut result = HashMap::new();
         for (inst_path, inst) in &self.instructions {
-            let inst_name = &get_file_name(inst_path)?.0;
+            let inst_name = &path::name(inst_path)?.0;
             let inst_name = inst.name.as_ref().unwrap_or(inst_name);
 
             // Filter isntructions
@@ -60,7 +60,7 @@ impl App {
             for (conf_name, conf_dir) in &self.configs {
                 if conf_name == inst_name {
                     for conf in conf_dir {
-                        configs.push(get_file_name(conf)?.0)
+                        configs.push(path::name(conf)?.0)
                     }
                     break;
                 }

@@ -48,12 +48,12 @@ pub enum Action {
     },
     #[clap(about=src::help::ADD)]
     Add {
-        #[clap(help=src::help::NAME)]
+        #[clap(required=true, help=src::help::NAME)]
         name: Vec<String>,
     },
     #[clap(about=src::help::DEL)]
     Del {
-        #[clap(help=src::help::NAME)]
+        #[clap(required=true, help=src::help::NAME)]
         name: Vec<String>,
     },
     #[clap(about=src::help::EDIT)]
