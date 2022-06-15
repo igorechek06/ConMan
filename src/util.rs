@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    io::{stdin, stdout, Write},
+};
 
 pub fn err<T, E>(result: Result<T, E>) -> i32
 where
@@ -11,6 +14,22 @@ where
             1
         }
     }
+}
+
+pub fn input<T>(prompt: &str) -> Result<T, String>
+where
+    T: std::str::FromStr,
+{
+    print!("{}", prompt);
+    stdout().flush().or(Err("Can't flush stdout".to_string()))?;
+
+    let mut buf = String::new();
+    stdin()
+        .read_line(&mut buf)
+        .or(Err("Can't read stdin".to_string()))?;
+    let buf = buf.trim_end();
+
+    return buf.parse().or(Err("Can't convert value".to_string()));
 }
 
 pub mod path {

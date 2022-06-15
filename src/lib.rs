@@ -99,7 +99,8 @@ fn run_del(names: &Vec<String>, args: &Args) -> Result<(), String> {
 }
 
 fn run_edit(name: &String, args: &Args) -> Result<(), String> {
-    println!("{} {}", name, args.force);
+    let app = App::new(args)?;
+    // TODO: ))
     Ok(())
 }
 
