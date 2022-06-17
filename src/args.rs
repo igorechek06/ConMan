@@ -4,20 +4,26 @@ pub mod src {
     pub const LONG_ABOUT: &str = "";
 
     pub mod help {
-        pub const LIST: &str = "Show all instructions";
-        pub const ADD: &str = "Add instruction";
-        pub const DEL: &str = "Delete instruction";
-        pub const EDIT: &str = "Edit instruction";
+        pub mod actions {
+            pub const LIST: &str = "Show all instructions";
+            pub const ADD: &str = "Add instruction";
+            pub const DEL: &str = "Delete instruction";
+            pub const EDIT: &str = "Edit instruction";
+            pub const SAVE: &str = "Save config to archive";
+            pub const LOAD: &str = "Load config from archive";
+        }
 
-        pub const SAVE: &str = "Save config to archive";
-        pub const LOAD: &str = "Load config from archive";
+        pub mod fields {
+            pub const NAME: &str = "Instruction name";
+            pub const PATH: &str = "Path where you want to save the archive";
+            pub const FILE: &str = "Path to archive";
+        }
 
-        pub const NAME: &str = "Instruction name";
-        pub const PATH: &str = "Path where you want to save the archive";
-        pub const FILE: &str = "Path to archive";
+        pub mod flags {
+            pub const FORCE: &str = "Never ask, always do";
+            pub const VERBOSE: &str = "Show debug information";
+        }
 
-        pub const FORCE: &str = "Never ask, always do";
-        pub const VERBOSE: &str = "Show debug information";
         pub const HELP: &str = "Show help information";
     }
 }
@@ -27,9 +33,9 @@ pub mod src {
 pub struct Args {
     #[clap(subcommand)]
     pub action: Action,
-    #[clap(long, short, help=src::help::FORCE)]
+    #[clap(long, short, help=src::help::flags::FORCE)]
     pub force: bool,
-    #[clap(long, short, help=src::help::VERBOSE)]
+    #[clap(long, short, help=src::help::flags::VERBOSE)]
     pub verbose: bool,
     #[clap(long, short, help=src::help::HELP)]
     pub help: bool,
@@ -41,40 +47,40 @@ pub enum Action {
     Help,
 
     // Instructions manager
-    #[clap(about=src::help::LIST)]
+    #[clap(about=src::help::actions::LIST)]
     List {
-        #[clap(help=src::help::NAME)]
+        #[clap(help=src::help::fields::NAME)]
         name: Vec<String>,
     },
-    #[clap(about=src::help::ADD)]
+    #[clap(about=src::help::actions::ADD)]
     Add {
-        #[clap(required=true, help=src::help::NAME)]
+        #[clap(required=true, help=src::help::fields::NAME)]
         name: Vec<String>,
     },
-    #[clap(about=src::help::DEL)]
+    #[clap(about=src::help::actions::DEL)]
     Del {
-        #[clap(required=true, help=src::help::NAME)]
+        #[clap(required=true, help=src::help::fields::NAME)]
         name: Vec<String>,
     },
-    #[clap(about=src::help::EDIT)]
+    #[clap(about=src::help::actions::EDIT)]
     Edit {
-        #[clap(help=src::help::NAME)]
+        #[clap(help=src::help::fields::NAME)]
         name: String,
     },
 
     // Config manager
-    #[clap(about=src::help::SAVE)]
+    #[clap(about=src::help::actions::SAVE)]
     Save {
-        #[clap(help=src::help::NAME)]
+        #[clap(help=src::help::fields::NAME)]
         name: String,
-        #[clap(help=src::help::PATH)]
+        #[clap(help=src::help::fields::PATH)]
         path: Option<String>,
     },
-    #[clap(about=src::help::LOAD)]
+    #[clap(about=src::help::actions::LOAD)]
     Load {
-        #[clap(help=src::help::FILE)]
+        #[clap(help=src::help::fields::FILE)]
         file: String,
-        #[clap(help=src::help::NAME)]
+        #[clap(help=src::help::fields::NAME)]
         name: Option<String>,
     },
 }

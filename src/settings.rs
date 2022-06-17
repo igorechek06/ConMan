@@ -7,11 +7,10 @@ type Objects = HashMap<String, Vec<String>>;
 // Instructions
 #[derive(Serialize, Deserialize)]
 pub struct Instruction {
-    // Required
-    pub objects: Objects,
     // Optional
-    pub name: Option<String>,
+    pub include: Option<Vec<String>>,
     pub paths: Option<HashMap<String, String>>,
+    pub objects: Option<Objects>,
     pub secrets: Option<Objects>,
 }
 
@@ -22,7 +21,13 @@ impl Instruction {
             path.as_ref().display()
         )))?;
 
-        Ok(from_reader(file).unwrap_or_default())
+        from_reader(file).map_err(|err| {
+            format!(
+                "Can't parse instruction ({}) :: {}",
+                path.as_ref().display(),
+                err.to_string()
+            )
+        })
     }
 
     pub fn _to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), String> {
@@ -36,16 +41,5 @@ impl Instruction {
         )))?;
 
         Ok(result)
-    }
-}
-
-impl Default for Instruction {
-    fn default() -> Self {
-        Self {
-            objects: HashMap::new(),
-            name: None,
-            paths: None,
-            secrets: None,
-        }
     }
 }

@@ -57,22 +57,22 @@ fn run_list(names: &Vec<String>, args: &Args) -> Result<(), String> {
 }
 
 fn run_add(names: &Vec<String>, args: &Args) -> Result<(), String> {
-    App::new(args)?;
+    let app = App::new(args)?;
     let inst_path = path::get("CONMAN_INSTRUCTIONS")?;
     let conf_path = path::get("CONMAN_CONFIGS")?;
 
     for name in names {
-        let mut file = inst_path.clone();
-        let mut storage = conf_path.clone();
-
-        file.push(format!("{}.yml", name));
-        storage.push(format!("{}", name));
-
-        if file.exists() {
-            err::<(), _>(Err(format!("Instruction exists ({})", file.display())));
+        if app.contains(name)? {
+            err(Err(format!("Instructions already exists ({})", name)));
+            continue;
         }
 
-        err(path::mkfile(file));
+        let mut inst = inst_path.clone();
+        let mut storage = conf_path.clone();
+        inst.push(format!("{}.yml", name));
+        storage.push(name);
+
+        err(path::mkfile(inst));
         err(path::mkdir(storage));
     }
 
@@ -80,19 +80,18 @@ fn run_add(names: &Vec<String>, args: &Args) -> Result<(), String> {
 }
 
 fn run_del(names: &Vec<String>, args: &Args) -> Result<(), String> {
-    App::new(args)?;
-    let inst_path = path::get("CONMAN_INSTRUCTIONS")?;
-    let conf_path = path::get("CONMAN_CONFIGS")?;
+    let app = App::new(args)?;
 
     for name in names {
-        let mut file = inst_path.clone();
-        let mut storage = conf_path.clone();
+        if !app.contains(name)? {
+            err(Err(format!("Instructions does not exists ({})", name)));
+            continue;
+        }
 
-        file.push(format!("{}.yml", name));
-        storage.push(format!("{}", name));
+        let (inst, storage) = app.get(name)?;
 
-        err(path::rm(file));
-        err(path::rm(storage));
+        err(path::rm(inst.0));
+        err(path::rm(storage.0));
     }
 
     Ok(())
@@ -100,7 +99,6 @@ fn run_del(names: &Vec<String>, args: &Args) -> Result<(), String> {
 
 fn run_edit(name: &String, args: &Args) -> Result<(), String> {
     let app = App::new(args)?;
-    // TODO: ))
     Ok(())
 }
 
