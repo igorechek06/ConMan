@@ -1,5 +1,4 @@
 use crate::args::Args;
-use crate::settings::Instruction;
 use crate::util::path;
 use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
@@ -91,16 +90,13 @@ impl App {
         Ok(inst && conf)
     }
 
-    pub fn get(
-        &self,
-        name: &String,
-    ) -> Result<((PathBuf, Instruction), (PathBuf, Vec<PathBuf>)), String> {
-        let mut inst = Err(format!("Can't find instruction ({})", name));
-        let mut conf = Err(format!("Cat't find config ({})", name));
+    pub fn get(&self, name: &String) -> Result<(PathBuf, (PathBuf, Vec<PathBuf>)), String> {
+        let mut inst = Err(format!("Instruction not found ({})", name));
+        let mut conf = Err(format!("Config not found ({})", name));
 
         for inst_path in &self.instructions {
             if path::name(inst_path)?.0 == *name {
-                inst = Ok((inst_path.to_owned(), Instruction::from_file(inst_path)?));
+                inst = Ok(inst_path.to_owned());
             }
         }
 

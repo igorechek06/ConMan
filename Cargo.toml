@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 dirs = "~4"
 regex = "~1"
+open = "~3"
 clap = { version = "~3", features = ["derive"] }
 serde = { version = "~1", features = ["derive"] }
 serde_yaml = "~0"

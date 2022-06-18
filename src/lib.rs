@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate dirs;
+extern crate open;
 extern crate regex;
 extern crate serde;
 extern crate serde_yaml;
@@ -90,7 +91,7 @@ fn run_del(names: &Vec<String>, args: &Args) -> Result<(), String> {
 
         let (inst, storage) = app.get(name)?;
 
-        err(path::rm(inst.0));
+        err(path::rm(inst));
         err(path::rm(storage.0));
     }
 
@@ -98,8 +99,8 @@ fn run_del(names: &Vec<String>, args: &Args) -> Result<(), String> {
 }
 
 fn run_edit(name: &String, args: &Args) -> Result<(), String> {
-    let app = App::new(args)?;
-    Ok(())
+    open::that(App::new(args)?.get(name)?.0)
+        .or(Err(format!("Can't open file in system editor ({})", name)))
 }
 
 fn run_save(name: &String, path: Option<&String>, args: &Args) -> Result<(), String> {
