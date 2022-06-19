@@ -36,7 +36,7 @@ pub fn run() -> i32 {
 }
 
 fn run_list(names: &Vec<String>, args: &Args) -> Result<(), String> {
-    let app = App::new(&args)?;
+    let app = App::new()?;
     let instructions = app.list(names)?;
     let mut result = String::new();
 
@@ -58,7 +58,7 @@ fn run_list(names: &Vec<String>, args: &Args) -> Result<(), String> {
 }
 
 fn run_add(names: &Vec<String>, args: &Args) -> Result<(), String> {
-    let app = App::new(args)?;
+    let app = App::new()?;
     let inst_path = path::get("CONMAN_INSTRUCTIONS")?;
     let conf_path = path::get("CONMAN_CONFIGS")?;
 
@@ -81,7 +81,7 @@ fn run_add(names: &Vec<String>, args: &Args) -> Result<(), String> {
 }
 
 fn run_del(names: &Vec<String>, args: &Args) -> Result<(), String> {
-    let app = App::new(args)?;
+    let app = App::new()?;
 
     for name in names {
         if !app.contains(name)? {
@@ -99,12 +99,18 @@ fn run_del(names: &Vec<String>, args: &Args) -> Result<(), String> {
 }
 
 fn run_edit(name: &String, args: &Args) -> Result<(), String> {
-    open::that(App::new(args)?.get(name)?.0)
+    open::that(App::new()?.get(name)?.0)
         .or(Err(format!("Can't open file in system editor ({})", name)))
 }
 
 fn run_save(name: &String, path: Option<&String>, args: &Args) -> Result<(), String> {
-    println!("{} {:?} {}", name, path, args.force);
+    let app = App::new()?;
+    let inst = app.parse(name)?;
+
+    for (root, paths) in inst.objects(&app)? {
+        println!("{:?} {:?}", root, paths);
+    }
+
     Ok(())
 }
 

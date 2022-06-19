@@ -1,4 +1,5 @@
 use crate::args::Args;
+use crate::settings::Instruction;
 use crate::util::path;
 use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
@@ -9,7 +10,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(_args: &Args) -> Result<Self, String> {
+    pub fn new() -> Result<Self, String> {
         let mut instructions = Vec::new();
         let mut configs = HashMap::new();
 
@@ -75,12 +76,14 @@ impl App {
         let mut inst = false;
         let mut conf = false;
 
+        // Find instruction
         for inst_path in &self.instructions {
             if path::name(inst_path)?.0 == *name {
                 inst = true;
             }
         }
 
+        // Find configs
         for (conf_path, _) in &self.configs {
             if path::name(conf_path)?.0 == *name {
                 conf = true;
@@ -94,18 +97,24 @@ impl App {
         let mut inst = Err(format!("Instruction not found ({})", name));
         let mut conf = Err(format!("Config not found ({})", name));
 
+        // Get instruction
         for inst_path in &self.instructions {
             if path::name(inst_path)?.0 == *name {
                 inst = Ok(inst_path.to_owned());
             }
         }
 
+        // Get configs
         for (conf_path, confs) in &self.configs {
             if path::name(conf_path)?.0 == *name {
                 conf = Ok((conf_path.to_owned(), confs.to_owned()));
             }
         }
 
-        return Ok((inst?, conf?));
+        Ok((inst?, conf?))
+    }
+
+    pub fn parse(&self, name: &String) -> Result<Instruction, String> {
+        Instruction::from_file(self.get(name)?.0)
     }
 }
