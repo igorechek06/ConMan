@@ -11,12 +11,14 @@ pub mod src {
             pub const EDIT: &str = "Edit instruction";
             pub const SAVE: &str = "Save config to archive";
             pub const LOAD: &str = "Load config from archive";
+            pub const USE: &str = "Use config in the system";
         }
 
         pub mod fields {
             pub const NAME: &str = "Instruction name";
             pub const PATH: &str = "Path where you want to save the archive";
             pub const FILE: &str = "Path to archive";
+            pub const NUMBER: &str = "Number of config";
         }
 
         pub mod flags {
@@ -82,5 +84,12 @@ pub enum Action {
         file: String,
         #[clap(help=src::help::fields::NAME)]
         name: Option<String>,
+    },
+    #[clap(about=src::help::actions::USE)]
+    Use {
+        #[clap(help=src::help::fields::NAME)]
+        name: String,
+        #[clap(help=src::help::fields::NUMBER)]
+        number: usize,
     },
 }

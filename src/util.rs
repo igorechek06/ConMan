@@ -102,3 +102,11 @@ pub mod path {
         Ok(path)
     }
 }
+
+// pub mod archive {
+//     use std::path::Path;
+//
+//     pub fn zip<P: AsRef<Path>>(archive: P, include: Vec<P>, exclude: Vec<P>) {}
+//
+//     pub fn unzip<P: AsRef<Path>>(archive: P, outdir: P) {}
+// }

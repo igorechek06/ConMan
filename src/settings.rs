@@ -1,118 +1,70 @@
 use serde::{Deserialize, Serialize};
 use serde_yaml::from_reader;
-use std::{
-    collections::HashMap,
-    fs::File,
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
+use std::fs::File;
+use std::path::{Path, PathBuf};
 
-use crate::{app::App, util::path};
+use crate::app::App;
+use crate::util::path;
 
-type Objects = HashMap<String, Vec<String>>;
-
-// Instructions
+// Raw instruction
 #[derive(Serialize, Deserialize)]
-pub struct Instruction {
+struct RawInstruction {
     // Optional
     include: Option<Vec<String>>,
     paths: Option<HashMap<String, String>>,
-    objects: Option<Objects>,
-    secrets: Option<Objects>,
+    objects: Option<HashMap<String, Vec<String>>>,
+    secrets: Option<HashMap<String, Vec<String>>>,
+}
+
+// Instruction
+pub struct Instruction {
+    pub paths: HashMap<String, PathBuf>,
+    pub objects: HashMap<PathBuf, Vec<PathBuf>>,
+    pub secrets: HashMap<PathBuf, Vec<PathBuf>>,
 }
 
 impl Instruction {
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, String> {
-        let file = File::open(&path).or(Err(format!(
-            "Can't open file ({})",
-            path.as_ref().display()
-        )))?;
+    pub fn from_file<P: AsRef<Path>>(path: P, app: &App) -> Result<Self, String> {
+        let path = path.as_ref();
+        let file = File::open(&path).or(Err(format!("Can't open file ({})", path.display())))?;
 
-        let result: Self = from_reader(file).map_err(|err| {
+        let raw: RawInstruction = from_reader(file).map_err(|err| {
             format!(
                 "Can't parse instruction ({}) :: {}",
-                path.as_ref().display(),
+                path.display(),
                 err.to_string()
             )
         })?;
 
-        if let Some(include) = &result.include {
-            let name = path::name(path)?.0;
-            if include.contains(&name) {
-                return Err(format!("Recursive include ({})", name));
-            }
-        }
+        let include = include(raw.include)?;
 
-        Ok(result)
+        Ok(Self {
+            paths: paths(raw.paths, &include)?,
+            objects: objects(raw.objects, &include)?,
+            secrets: objects(raw.secrets, &include)?,
+        })
     }
+}
 
-    pub fn include(&self, app: &App) -> Result<Vec<Self>, String> {
-        let mut result = Vec::new();
+fn parse_path(path: String) -> Result<PathBuf, String> {
+    todo!()
+}
 
-        if let Some(include) = &self.include {
-            for name in include {
-                result.push(app.parse(name)?)
-            }
-        }
+fn include(raw: Option<Vec<String>>) -> Result<Vec<Instruction>, String> {
+    todo!()
+}
 
-        Ok(result)
-    }
+fn paths(
+    raw: Option<HashMap<String, String>>,
+    include: &Vec<Instruction>,
+) -> Result<HashMap<String, PathBuf>, String> {
+    todo!()
+}
 
-    pub fn paths(&self, app: &App) -> Result<HashMap<String, PathBuf>, String> {
-        let mut result = HashMap::new();
-
-        if let Some(paths) = &self.paths {
-            for (name, path) in paths {
-                result.insert(name.to_owned(), Path::new(path).to_path_buf());
-            }
-        }
-        for inst in self.include(app)? {
-            result.extend(inst.paths(app)?)
-        }
-
-        Ok(result)
-    }
-
-    pub fn objects(&self, app: &App) -> Result<HashMap<PathBuf, Vec<PathBuf>>, String> {
-        let mut result = HashMap::new();
-
-        if let Some(objects) = &self.objects {
-            for (root, paths) in objects {
-                result.insert(
-                    Path::new(root).to_path_buf(),
-                    paths
-                        .to_owned()
-                        .iter()
-                        .map(|p| Path::new(p).to_path_buf())
-                        .collect::<Vec<PathBuf>>(),
-                );
-            }
-        }
-        for inst in self.include(app)? {
-            result.extend(inst.objects(app)?)
-        }
-
-        Ok(result)
-    }
-
-    pub fn secrets(&self, app: &App) -> Result<HashMap<PathBuf, Vec<PathBuf>>, String> {
-        let mut result = HashMap::new();
-
-        if let Some(secrets) = &self.secrets {
-            for (root, paths) in secrets {
-                result.insert(
-                    Path::new(root).to_path_buf(),
-                    paths
-                        .to_owned()
-                        .iter()
-                        .map(|p| Path::new(p).to_path_buf())
-                        .collect::<Vec<PathBuf>>(),
-                );
-            }
-        }
-        for inst in self.include(app)? {
-            result.extend(inst.secrets(app)?)
-        }
-
-        Ok(result)
-    }
+fn objects(
+    raw: Option<HashMap<String, Vec<String>>>,
+    include: &Vec<Instruction>,
+) -> Result<HashMap<PathBuf, Vec<PathBuf>>, String> {
+    todo!()
 }
