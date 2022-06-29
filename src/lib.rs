@@ -10,6 +10,7 @@ mod args;
 mod settings;
 mod util;
 
+use crate::settings::Instruction;
 use app::App;
 use args::{Action, Args};
 use clap::Parser;
@@ -68,8 +69,7 @@ fn run_list(names: &Vec<String>) -> Result<(), String> {
 
 fn run_add(names: &Vec<String>) -> Result<(), String> {
     let app = App::new()?;
-    let inst_path = path::get("CONMAN_INSTRUCTIONS")?;
-    let conf_path = path::get("CONMAN_CONFIGS")?;
+    let (inst_path, conf_path) = path::config_dir()?;
 
     for name in names {
         if app.contains(name) {
