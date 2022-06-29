@@ -1,3 +1,4 @@
+use crate::settings::Instruction;
 use crate::util::path;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -54,5 +55,21 @@ impl App {
 
     pub fn contains(&self, name: &str) -> bool {
         self.instructions.contains_key(name) && self.configs.contains_key(name)
+    }
+
+    pub fn instruction(&self, name: &str) -> Result<&PathBuf, String> {
+        self.instructions
+            .get(name)
+            .ok_or(format!("Instruction does not exist ({})", name))
+    }
+
+    pub fn parse_instruction(&self, name: &str) -> Result<Instruction, String> {
+        Instruction::from_file(self.instruction(name)?, self)
+    }
+
+    pub fn config(&self, name: &str) -> Result<&(PathBuf, BTreeMap<String, PathBuf>), String> {
+        self.configs
+            .get(name)
+            .ok_or(format!("Config does not exist ({})", name))
     }
 }

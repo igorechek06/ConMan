@@ -1,7 +1,9 @@
+extern crate chrono;
 extern crate clap;
 extern crate dirs;
 extern crate open;
 extern crate regex;
+extern crate rpassword;
 extern crate serde;
 extern crate serde_yaml;
 
@@ -10,11 +12,13 @@ mod args;
 mod settings;
 mod util;
 
-use crate::settings::Instruction;
 use app::App;
 use args::{Action, Args};
+use chrono::Local;
 use clap::Parser;
-use util::{err, path};
+use settings::Entry;
+use std::path::Path;
+use util::{archive, err, path};
 
 /*
 TODO: Add color output
@@ -93,16 +97,11 @@ fn run_del(names: &Vec<String>) -> Result<(), String> {
     let app = App::new()?;
 
     for name in names {
-        if !app.contains(name) {
-            err(Err(format!("Instruction does not exist ({})", name)));
-            continue;
-        }
+        let inst = app.instruction(name)?;
+        let confs = app.config(name)?;
 
-        let inst = &app.instructions[name];
-        let confs = &app.configs[name];
-
-        err(path::rm(inst));
-        err(path::rm(&confs.0));
+        path::rm(inst)?;
+        path::rm(&confs.0)?;
     }
 
     Ok(())
@@ -119,7 +118,31 @@ fn run_edit(name: &String) -> Result<(), String> {
 }
 
 fn run_save(name: &String, path: &Option<String>) -> Result<(), String> {
-    println!("{:?} {:?}", name, path);
+    let app = App::new()?;
+    let inst = app.parse_instruction(&name)?;
+
+    if !inst.objects.is_empty() {
+        let path = match path {
+            Some(path) => Path::new(path).to_path_buf(),
+            None => {
+                let mut path = app.config(name)?.0.to_path_buf();
+                path.push(Local::now().format("%F %H:%M:%S").to_string());
+                path
+            }
+        };
+        let mut add = Vec::new();
+        let mut del = Vec::new();
+
+        for e in inst.objects {
+            match e {
+                Entry::Add { path } => add.push(path),
+                Entry::Del { path } => del.push(path),
+            }
+        }
+
+        archive::zip(path, add, del, None)?;
+    }
+
     Ok(())
 }
 

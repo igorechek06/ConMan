@@ -10,6 +10,8 @@ edition = "2021"
 dirs = "~4"
 regex = "~1"
 open = "~3"
+chrono = "~0"
+rpassword = "~6"
 clap = { version = "~3", features = ["derive"] }
 serde = { version = "~1", features = ["derive"] }
 serde_yaml = "~0"

@@ -13,7 +13,6 @@ pub struct RawInstruction {
     // Optional
     include: Option<Vec<String>>,
     objects: Option<HashMap<String, Vec<String>>>,
-    secrets: Option<HashMap<String, Vec<String>>>,
 }
 
 impl RawInstruction {
@@ -40,7 +39,6 @@ pub enum Entry {
 // Instruction
 pub struct Instruction {
     pub objects: Vec<Entry>,
-    pub secrets: Vec<Entry>,
 }
 
 impl Instruction {
@@ -49,16 +47,13 @@ impl Instruction {
     }
 
     pub fn from_raw(raw: RawInstruction, app: &App) -> Result<Self, String> {
-        let include = include(raw.include, app)?;
-
         Ok(Self {
             objects: objects(
                 raw.objects,
-                include.iter().map(|i| i.objects.clone()).collect(),
-            )?,
-            secrets: objects(
-                raw.secrets,
-                include.iter().map(|i| i.objects.clone()).collect(),
+                include(raw.include, app)?
+                    .iter()
+                    .map(|i| i.objects.clone())
+                    .collect(),
             )?,
         })
     }
