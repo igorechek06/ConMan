@@ -135,6 +135,13 @@ fn run_save(
     let app = App::new()?;
     let inst = app.parse_instruction(&name)?;
 
+    if *compression > 9 || *compression < 1 {
+        return Err(format!(
+            "The compression value must be between 1 and 9, not {}",
+            compression
+        ));
+    }
+
     if !inst.objects.is_empty() {
         let path = match path {
             Some(path) => {
