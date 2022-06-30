@@ -102,11 +102,7 @@ fn include(raw: Option<Vec<String>>, app: &App) -> Result<Vec<Instruction>, Stri
                 }
                 included.push(name.clone());
 
-                let inst = RawInstruction::from_file(
-                    app.instructions
-                        .get(name)
-                        .ok_or(format!("Instruction does not exist ({})", name))?,
-                )?;
+                let inst = RawInstruction::from_file(app.instruction(&name)?)?;
 
                 result.extend(include_raw(inst.include.clone(), included.clone(), app)?);
                 result.push(inst)

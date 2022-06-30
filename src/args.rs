@@ -19,6 +19,8 @@ pub mod src {
             pub const PATH: &str = "Path where you want to save the archive";
             pub const FILE: &str = "Path to archive";
             pub const NUMBER: &str = "Number of config";
+            pub const COMPRESSION: &str = "Archive compression";
+            pub const PASSWORD: &str = "Archive password";
         }
 
         pub mod flags {
@@ -52,17 +54,19 @@ pub enum Action {
     #[clap(about=src::help::actions::LIST)]
     List {
         #[clap(help=src::help::fields::NAME)]
-        name: Vec<String>,
+        names: Vec<String>,
     },
     #[clap(about=src::help::actions::ADD)]
     Add {
         #[clap(required=true, help=src::help::fields::NAME)]
-        name: Vec<String>,
+        names: Vec<String>,
     },
     #[clap(about=src::help::actions::DEL)]
     Del {
-        #[clap(required=true, help=src::help::fields::NAME)]
-        name: Vec<String>,
+        #[clap(help=src::help::fields::NAME)]
+        names: Vec<String>,
+        #[clap(short, long, help=src::help::fields::NUMBER)]
+        number: Option<usize>,
     },
     #[clap(about=src::help::actions::EDIT)]
     Edit {
@@ -77,6 +81,10 @@ pub enum Action {
         name: String,
         #[clap(help=src::help::fields::PATH)]
         path: Option<String>,
+        #[clap(short, long, default_value_t = 9, help=src::help::fields::COMPRESSION)]
+        compression: u8,
+        #[clap(short, long, help=src::help::fields::PASSWORD)]
+        password: Option<String>,
     },
     #[clap(about=src::help::actions::LOAD)]
     Load {

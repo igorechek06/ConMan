@@ -87,6 +87,7 @@ pub mod path {
             "DATA" => dirs::data_dir(),
             "LOCAL" => dirs::data_local_dir(),
             "CONFIGS" => dirs::config_dir(),
+            "PREFERENCE" => dirs::preference_dir(),
             _ => return Err(format!("Unknown path type ({})", path_type)),
         }
         .ok_or(format!("Unable to get dir ({})", path_type))?;
@@ -97,8 +98,8 @@ pub mod path {
     }
 
     pub fn config_dir() -> Result<(PathBuf, PathBuf), String> {
-        let mut config = get("CONFIGS")?;
-        let mut data = get("DATA")?;
+        let mut config = dirs::config_dir().expect("Unable to get config dir");
+        let mut data = dirs::data_local_dir().expect("Unable to get data dir");
 
         config.push("conman");
         data.push("conman");
@@ -111,18 +112,53 @@ pub mod path {
 }
 
 pub mod archive {
+    use std::fmt::Display;
     use std::path::Path;
+    use std::process::Command;
 
-    pub fn zip<P: AsRef<Path>>(
+    fn repr<S: Display>(text: S) -> String {
+        format!(r#"{}"#, text.to_string().escape_default())
+    }
+
+    pub fn zip<P>(
         archive: P,
-        include: Vec<P>,
-        exclude: Vec<P>,
-        password: Option<&str>,
-    ) -> Result<(), String> {
-        todo!()
+        include: &Vec<P>,
+        exclude: &Vec<P>,
+        compression: &u8,
+        password: Option<&String>,
+    ) -> Result<(), String>
+    where
+        P: AsRef<Path>,
+    {
+        let archive = repr(archive.as_ref().display());
+        let include: Vec<String> = include.iter().map(|p| repr(p.as_ref().display())).collect();
+        let exclude: Vec<String> = exclude
+            .iter()
+            .map(|p| format!("-xr!{}", repr(p.as_ref().display())))
+            .collect();
+        let compression = format!("-mx{}", compression);
+        let password = password.map_or("".to_string(), |p| format!("-P{}", repr(p)));
+
+        let cmd = Command::new("7z")
+            .arg("a")
+            .arg("-y")
+            .arg("-spf")
+            .arg(compression)
+            .arg(password)
+            .arg(archive)
+            .args(include)
+            .args(exclude)
+            .output()
+            .or(Err("Process failed to execute"))?;
+
+        if !cmd.status.success() {
+            eprintln!("{}", String::from_utf8(cmd.stderr).unwrap().trim());
+        }
+
+        Ok(())
     }
 
-    pub fn unzip<P: AsRef<Path>>(archive: P, outdir: P) -> Result<(), String> {
-        todo!()
-    }
+    // pub fn unzip<P: AsRef<Path>>(archive: P, outdir: P) -> Result<(), String> {
+    //     todo!()
+    // }
 }

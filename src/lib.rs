@@ -17,7 +17,7 @@ use args::{Action, Args};
 use chrono::Local;
 use clap::Parser;
 use settings::Entry;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use util::{archive, err, path};
 
 /*
@@ -29,11 +29,16 @@ pub fn run() -> i32 {
     let args = Args::parse();
     let result = match &args.action {
         Action::Help => Ok(()),
-        Action::List { name } => run_list(name),
-        Action::Add { name } => run_add(name),
-        Action::Del { name } => run_del(name),
+        Action::List { names } => run_list(names),
+        Action::Add { names } => run_add(names),
+        Action::Del { names, number } => run_del(names, number),
         Action::Edit { name } => run_edit(name),
-        Action::Save { name, path } => run_save(name, path),
+        Action::Save {
+            name,
+            path,
+            compression,
+            password,
+        } => run_save(name, path, compression, password),
         Action::Load { file, name } => run_load(file, name),
         Action::Use { name, number } => run_use(name, number),
     };
@@ -93,40 +98,55 @@ fn run_add(names: &Vec<String>) -> Result<(), String> {
     Ok(())
 }
 
-fn run_del(names: &Vec<String>) -> Result<(), String> {
+fn run_del(names: &Vec<String>, number: &Option<usize>) -> Result<(), String> {
     let app = App::new()?;
 
     for name in names {
-        let inst = app.instruction(name)?;
-        let confs = app.config(name)?;
+        if let Some(number) = number {
+            let confs: Vec<&PathBuf> = app.config(name)?.1.values().collect();
+            path::rm(
+                confs
+                    .get(number - 1)
+                    .ok_or(format!("Config does not exist ({})", number))?,
+            )?;
+        } else {
+            let inst = app.instruction(name)?;
+            let confs = app.config(name)?;
 
-        path::rm(inst)?;
-        path::rm(&confs.0)?;
+            path::rm(inst)?;
+            path::rm(&confs.0)?;
+        }
     }
 
     Ok(())
 }
 
 fn run_edit(name: &String) -> Result<(), String> {
-    open::that(
-        App::new()?
-            .instructions
-            .get(name)
-            .ok_or(format!("Instruction does not exist ({})", name))?,
-    )
-    .or(Err(format!("Can't open file in system editor ({})", name)))
+    open::that(App::new()?.instruction(&name)?)
+        .or(Err(format!("Can't open file in system editor ({})", name)))
 }
 
-fn run_save(name: &String, path: &Option<String>) -> Result<(), String> {
+fn run_save(
+    name: &String,
+    path: &Option<String>,
+    compression: &u8,
+    password: &Option<String>,
+) -> Result<(), String> {
     let app = App::new()?;
     let inst = app.parse_instruction(&name)?;
 
     if !inst.objects.is_empty() {
         let path = match path {
-            Some(path) => Path::new(path).to_path_buf(),
+            Some(path) => {
+                let mut path = Path::new(path).to_path_buf();
+                if path.is_dir() {
+                    path.push(format!("{name}.conman"));
+                }
+                path
+            }
             None => {
                 let mut path = app.config(name)?.0.to_path_buf();
-                path.push(Local::now().format("%F %H:%M:%S").to_string());
+                path.push(Local::now().format("%F %H:%M:%S.conman").to_string());
                 path
             }
         };
@@ -140,18 +160,16 @@ fn run_save(name: &String, path: &Option<String>) -> Result<(), String> {
             }
         }
 
-        archive::zip(path, add, del, None)?;
+        archive::zip(path, &add, &del, &compression, password.as_ref())?;
     }
 
     Ok(())
 }
 
 fn run_load(path: &String, name: &Option<String>) -> Result<(), String> {
-    println!("{:?} {:?}", path, name);
-    Ok(())
+    todo!()
 }
 
 fn run_use(name: &String, number: &usize) -> Result<(), String> {
-    println!("{} {}", name, number);
-    Ok(())
+    todo!()
 }
