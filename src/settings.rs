@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::util::path;
+use crate::util::{path, str_err};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_yaml::from_reader;
@@ -7,18 +7,23 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-// Raw instruction
+#[derive(Serialize, Deserialize)]
+pub struct RawEntries {
+    path: String,
+    entries: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct RawInstruction {
-    // Optional
     include: Option<Vec<String>>,
-    objects: Option<HashMap<String, Vec<String>>>,
+    save: Option<HashMap<String, RawEntries>>,
+    os: Option<Vec<String>>,
 }
 
 impl RawInstruction {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, String> {
         let path = path.as_ref();
-        let file = File::open(&path).or(Err(format!("Can't open file ({})", path.display())))?;
+        let file = str_err(File::open(&path))?;
 
         from_reader(file).map_err(|err| {
             format!(
@@ -30,15 +35,14 @@ impl RawInstruction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Entry {
-    Add { path: PathBuf },
-    Del { path: PathBuf },
+#[derive(Clone)]
+pub struct Entries {
+    pub add: Vec<PathBuf>,
+    pub del: Vec<PathBuf>,
 }
 
-// Instruction
 pub struct Instruction {
-    pub objects: Vec<Entry>,
+    pub save: HashMap<String, Entries>,
 }
 
 impl Instruction {
@@ -48,11 +52,11 @@ impl Instruction {
 
     pub fn from_raw(raw: RawInstruction, app: &App) -> Result<Self, String> {
         Ok(Self {
-            objects: objects(
-                raw.objects,
-                include(raw.include, app)?
+            save: parse_save(
+                raw.save,
+                parse_include(raw.include, app)?
                     .iter()
-                    .map(|i| i.objects.clone())
+                    .map(|i| i.save.clone())
                     .collect(),
             )?,
         })
@@ -72,21 +76,33 @@ fn parse_path(path: String) -> Result<PathBuf, String> {
         path = path.replace(&old, &new);
     }
 
-    Ok(Path::new(&path).to_path_buf())
+    Ok(PathBuf::from(&path))
 }
 
-fn parse_entry(root: &PathBuf, entry: &String) -> Entry {
-    let mut path = root.clone();
-    if entry.starts_with("-") {
-        path.push(entry.strip_prefix("-").unwrap());
-        return Entry::Del { path };
-    } else {
-        path.push(entry.strip_prefix("+").unwrap_or(entry));
-        return Entry::Add { path };
+fn parse_entries(raw: RawEntries) -> Result<Entries, String> {
+    let root = parse_path(raw.path)?;
+    let mut add = Vec::new();
+    let mut del = Vec::new();
+
+    for e in raw.entries {
+        let mut path = root.clone();
+        if e.starts_with("-") {
+            path.push(e.strip_prefix("-").unwrap());
+            if !del.contains(&path) {
+                del.push(path);
+            }
+        } else {
+            path.push(e.strip_prefix("+").unwrap_or(&e));
+            if !add.contains(&path) {
+                add.push(path);
+            }
+        }
     }
+
+    Ok(Entries { add, del })
 }
 
-fn include(raw: Option<Vec<String>>, app: &App) -> Result<Vec<Instruction>, String> {
+fn parse_include(raw: Option<Vec<String>>, app: &App) -> Result<Vec<Instruction>, String> {
     fn include_raw(
         raw: Option<Vec<String>>,
         included: Vec<String>,
@@ -118,20 +134,15 @@ fn include(raw: Option<Vec<String>>, app: &App) -> Result<Vec<Instruction>, Stri
     Ok(result)
 }
 
-fn objects(
-    raw: Option<HashMap<String, Vec<String>>>,
-    extend: Vec<Vec<Entry>>,
-) -> Result<Vec<Entry>, String> {
-    let mut result = Vec::new();
+fn parse_save(
+    raw: Option<HashMap<String, RawEntries>>,
+    extend: Vec<HashMap<String, Entries>>,
+) -> Result<HashMap<String, Entries>, String> {
+    let mut result = HashMap::new();
 
     if let Some(raw) = raw {
-        for (root, raw_entries) in &raw {
-            for entry in raw_entries {
-                let entry = parse_entry(&parse_path(root.clone())?, &entry);
-                if !result.contains(&entry) {
-                    result.push(entry);
-                }
-            }
+        for (name, entries) in raw {
+            result.insert(name, parse_entries(entries)?);
         }
     }
     for e in extend {

@@ -6,6 +6,7 @@ extern crate regex;
 extern crate rpassword;
 extern crate serde;
 extern crate serde_yaml;
+extern crate uuid;
 
 mod app;
 mod args;
@@ -14,11 +15,9 @@ mod util;
 
 use app::App;
 use args::{Action, Args};
-use chrono::Local;
 use clap::Parser;
-use settings::Entry;
-use std::path::{Path, PathBuf};
-use util::{archive, err, path};
+use std::path::PathBuf;
+use util::{path, print_err, str_err};
 
 /*
 TODO: Add color output
@@ -43,7 +42,7 @@ pub fn run() -> i32 {
         Action::Use { name, number } => run_use(name, number),
     };
 
-    err(result)
+    print_err(result).is_err() as i32
 }
 
 fn run_list(names: &Vec<String>) -> Result<(), String> {
@@ -82,7 +81,7 @@ fn run_add(names: &Vec<String>) -> Result<(), String> {
 
     for name in names {
         if app.contains(name) {
-            err(Err(format!("Instruction already exist ({})", name)));
+            print_err::<(), _>(Err(format!("Instruction already exist ({})", name)));
             continue;
         }
 
@@ -91,8 +90,8 @@ fn run_add(names: &Vec<String>) -> Result<(), String> {
         inst.push(format!("{}.yml", name));
         storage.push(name);
 
-        err(path::mkfile(inst));
-        err(path::mkdir(storage));
+        print_err(path::mkfile(inst));
+        print_err(path::mkdir(storage));
     }
 
     Ok(())
@@ -122,8 +121,7 @@ fn run_del(names: &Vec<String>, number: &Option<usize>) -> Result<(), String> {
 }
 
 fn run_edit(name: &String) -> Result<(), String> {
-    open::that(App::new()?.instruction(&name)?)
-        .or(Err(format!("Can't open file in system editor ({})", name)))
+    str_err(open::that(App::new()?.instruction(&name)?))
 }
 
 fn run_save(
@@ -133,42 +131,21 @@ fn run_save(
     password: &Option<String>,
 ) -> Result<(), String> {
     let app = App::new()?;
-    let inst = app.parse_instruction(&name)?;
+    let (inst, inst_path) = app.parse_instruction(name)?;
 
-    if *compression > 9 || *compression < 1 {
-        return Err(format!(
-            "The compression value must be between 1 and 9, not {}",
-            compression
-        ));
-    }
+    let tmp = path::tmp_dir()?;
+    let data = path::add(&tmp, "data");
 
-    if !inst.objects.is_empty() {
-        let path = match path {
-            Some(path) => {
-                let mut path = Path::new(path).to_path_buf();
-                if path.is_dir() {
-                    path.push(format!("{name}.conman"));
-                }
-                path
-            }
-            None => {
-                let mut path = app.config(name)?.0.to_path_buf();
-                path.push(Local::now().format("%F %H:%M:%S.conman").to_string());
-                path
-            }
-        };
-        let mut add = Vec::new();
-        let mut del = Vec::new();
+    path::cp(inst_path, path::add(&tmp, "instruction.yml"))?;
 
-        for e in inst.objects {
-            match e {
-                Entry::Add { path } => add.push(path),
-                Entry::Del { path } => del.push(path),
-            }
+    for (name, entries) in inst.save {
+        let entry_dir = path::add(&data, name);
+        for entry in &entries.add {
+            path::cp(entry, &entry_dir)?;
         }
-
-        archive::zip(path, &add, &del, &compression, password.as_ref())?;
     }
+
+    path::rm(tmp)?;
 
     Ok(())
 }
