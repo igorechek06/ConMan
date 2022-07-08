@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 pub fn str_err<R, E: Display>(result: Result<R, E>) -> Result<R, String> {
-    return result.map_err(|e| e.to_string());
+    result.map_err(|e| e.to_string())
 }
 
 pub mod path {

@@ -18,7 +18,7 @@ use args::{Action, Args};
 use chrono::Local;
 use clap::Parser;
 use std::path::PathBuf;
-use util::{archive, path, str_err};
+use util::{archive, path};
 
 /*
 TODO: Add color output
@@ -80,7 +80,7 @@ fn run_list(names: &Vec<String>) -> Result<(), String> {
 }
 
 fn run_add(names: &Vec<String>) -> Result<(), String> {
-    let app = App::new()?;
+    let mut app = App::new()?;
     for name in names {
         app.add(name)?;
     }
@@ -88,7 +88,7 @@ fn run_add(names: &Vec<String>) -> Result<(), String> {
 }
 
 fn run_del(names: &Vec<String>, numbers: &Vec<usize>) -> Result<(), String> {
-    let app = App::new()?;
+    let mut app = App::new()?;
     for name in names {
         app.del(name, numbers)?;
     }

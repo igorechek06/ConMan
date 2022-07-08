@@ -74,27 +74,41 @@ impl App {
             .ok_or(format!("Config does not exist ({})", name))
     }
 
-    pub fn add(&self, name: &str) -> Result<(), String> {
+    pub fn add(&mut self, name: &str) -> Result<(), String> {
         if self.exist(name) {
             return Err(format!("Instruction already exist ({})", name));
         }
 
-        let (inst_path, conf_path) = path::config_dir()?;
-        path::mkfile(inst_path.join(format!("{}.yml", name)))?;
-        path::mkdir(conf_path.join(name))?;
+        let (mut inst_path, mut conf_path) = path::config_dir()?;
+        inst_path.push(format!("{}.yml", name));
+        conf_path.push(name);
+
+        path::mkfile(&inst_path)?;
+        path::mkdir(&conf_path)?;
+
+        self.instructions.insert(name.to_string(), inst_path);
+        self.configs
+            .insert(name.to_string(), (conf_path, BTreeMap::new()));
 
         Ok(())
     }
 
-    pub fn del(&self, name: &str, numbers: &Vec<usize>) -> Result<(), String> {
+    pub fn del(&mut self, name: &str, numbers: &Vec<usize>) -> Result<(), String> {
         if !numbers.is_empty() {
             for number in numbers {
-                let confs: Vec<&PathBuf> = self.configs(name)?.1.values().collect();
-                path::rm(
-                    confs
-                        .get(number - 1)
-                        .ok_or(format!("Config does not exist ({})", number))?,
-                )?;
+                let configs = &mut self
+                    .configs
+                    .get_mut(name)
+                    .ok_or(format!("Config does not exist ({})", name))?
+                    .1;
+
+                let keys: Vec<String> = configs.keys().cloned().collect();
+                let key = keys
+                    .get(number - 1)
+                    .ok_or(format!("Config does not exist ({})", number))?;
+
+                path::rm(configs.get(key).unwrap())?;
+                configs.remove(key);
             }
         } else {
             let inst = self.instruction(name)?;
@@ -102,6 +116,9 @@ impl App {
 
             path::rm(inst)?;
             path::rm(&confs.0)?;
+
+            self.instructions.remove(name);
+            self.configs.remove(name);
         }
         Ok(())
     }
