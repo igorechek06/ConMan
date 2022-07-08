@@ -1,12 +1,5 @@
 use std::fmt::Display;
 
-pub fn print_err<R, E: Display>(result: Result<R, E>) -> Result<R, E> {
-    if let Err(err) = &result {
-        eprintln!("Error :: {}", err);
-    }
-    result
-}
-
 pub fn str_err<R, E: Display>(result: Result<R, E>) -> Result<R, String> {
     return result.map_err(|e| e.to_string());
 }
@@ -57,17 +50,35 @@ pub mod path {
         Ok(())
     }
 
-    pub fn cp<F: AsRef<Path>, T: AsRef<Path>>(from: F, to: T) -> Result<(), String> {
+    pub fn cp<F: AsRef<Path>, T: AsRef<Path>>(
+        from: F,
+        to: T,
+        ignore: Option<&Vec<PathBuf>>,
+    ) -> Result<(), String> {
         let from = from.as_ref();
         let to = to.as_ref();
 
+        if let Some(ignore) = ignore {
+            if ignore.contains(&from.to_path_buf()) {
+                return Ok(());
+            }
+        }
+
         if from.is_dir() {
-            let to = add(to, name(from)?.2);
-            mkdir(&to)?;
+            let to = &to.join(name(from)?.2);
+            mkdir(to)?;
 
             for item in list(from)? {
                 let item = name(str_err(item)?.path())?.2;
-                cp(add(from, &item), add(&to, &item))?;
+
+                let f = from.join(&item);
+                let t = if !f.is_dir() {
+                    to.join(&item)
+                } else {
+                    to.clone()
+                };
+
+                cp(f, t, ignore)?;
             }
         } else if from.is_file() {
             str_err(copy(from, to))?;
@@ -101,12 +112,6 @@ pub mod path {
             result.name("ext").map(|m| m.as_str().to_string()),
             result.get(0).unwrap().as_str().to_string(),
         ))
-    }
-
-    pub fn add<P: AsRef<Path>, A: AsRef<Path>>(path: P, add: A) -> PathBuf {
-        let mut path = path.as_ref().to_path_buf();
-        path.push(add);
-        path
     }
 
     pub fn get(path_type: &str) -> Result<PathBuf, String> {
@@ -146,47 +151,47 @@ pub mod path {
     }
 }
 
-// pub mod archive {
-//     use std::fmt::Display;
-//     use std::path::Path;
-//     use std::process::Command;
-//
-//     fn repr<S: Display>(text: S) -> String {
-//         format!(r#"{}"#, text.to_string().escape_default())
-//     }
-//
-//     pub fn zip<P>(
-//         archive: P,
-//         inpath: P,
-//         compression: &u8,
-//         password: Option<&String>,
-//     ) -> Result<(), String>
-//     where
-//         P: AsRef<Path>,
-//     {
-//         let archive = repr(archive.as_ref().display());
-//         let entry = repr(inpath.as_ref().display());
-//         let compression = format!("-mx{}", compression);
-//         let password = password.map_or("".to_string(), |p| format!("-P{}", repr(p)));
-//
-//         let cmd = Command::new("7z")
-//             .arg("a")
-//             .arg("-y")
-//             .arg(compression)
-//             .arg(password)
-//             .arg(archive)
-//             .arg(entry)
-//             .output()
-//             .or(Err("Process failed to execute"))?;
-//
-//         if !cmd.status.success() {
-//             eprintln!("{}", String::from_utf8(cmd.stderr).unwrap().trim());
-//         }
-//
-//         Ok(())
-//     }
-//
-//     pub fn unzip<P: AsRef<Path>>(archive: P, outpath: P) -> Result<(), String> {
-//         todo!()
-//     }
-// }
+pub mod archive {
+    use std::fmt::Display;
+    use std::path::Path;
+    use std::process::Command;
+
+    use crate::util::str_err;
+
+    fn repr<S: Display>(text: S) -> String {
+        format!(r#"{}"#, text.to_string().escape_default())
+    }
+
+    pub fn zip<A: AsRef<Path>, I: AsRef<Path>>(
+        archive: A,
+        include: &[I],
+        compression: &u8,
+        password: Option<&String>,
+    ) -> Result<(), String> {
+        let archive = repr(archive.as_ref().display());
+        let include: Vec<String> = include.iter().map(|e| repr(e.as_ref().display())).collect();
+        let compression = format!("-mx{}", compression);
+        let password = password.map_or("".to_string(), |p| format!("-P{}", repr(p)));
+
+        let result = str_err(
+            Command::new("7z")
+                .arg("a")
+                .arg("-y")
+                .arg(compression)
+                .arg(password)
+                .arg(archive)
+                .args(include)
+                .output(),
+        )?;
+
+        if !result.status.success() {
+            eprintln!("{}", String::from_utf8(result.stderr).unwrap().trim());
+        }
+
+        Ok(())
+    }
+
+    // pub fn unzip<A: AsRef<Path>, O: AsRef<Path>>(archive: A, outpath: O) -> Result<(), String> {
+    //     todo!()
+    // }
+}

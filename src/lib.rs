@@ -15,9 +15,10 @@ mod util;
 
 use app::App;
 use args::{Action, Args};
+use chrono::Local;
 use clap::Parser;
 use std::path::PathBuf;
-use util::{path, print_err, str_err};
+use util::{archive, path, str_err};
 
 /*
 TODO: Add color output
@@ -42,7 +43,10 @@ pub fn run() -> i32 {
         Action::Use { name, number } => run_use(name, number),
     };
 
-    print_err(result).is_err() as i32
+    if let Err(err) = &result {
+        eprintln!("Error :: {}", err);
+    }
+    result.is_err() as i32
 }
 
 fn run_list(names: &Vec<String>) -> Result<(), String> {
@@ -81,8 +85,7 @@ fn run_add(names: &Vec<String>) -> Result<(), String> {
 
     for name in names {
         if app.contains(name) {
-            print_err::<(), _>(Err(format!("Instruction already exist ({})", name)));
-            continue;
+            return Err(format!("Instruction already exist ({})", name));
         }
 
         let mut inst = inst_path.clone();
@@ -90,24 +93,26 @@ fn run_add(names: &Vec<String>) -> Result<(), String> {
         inst.push(format!("{}.yml", name));
         storage.push(name);
 
-        print_err(path::mkfile(inst));
-        print_err(path::mkdir(storage));
+        path::mkfile(inst)?;
+        path::mkdir(storage)?;
     }
 
     Ok(())
 }
 
-fn run_del(names: &Vec<String>, number: &Option<usize>) -> Result<(), String> {
+fn run_del(names: &Vec<String>, numbers: &Vec<usize>) -> Result<(), String> {
     let app = App::new()?;
 
     for name in names {
-        if let Some(number) = number {
-            let confs: Vec<&PathBuf> = app.config(name)?.1.values().collect();
-            path::rm(
-                confs
-                    .get(number - 1)
-                    .ok_or(format!("Config does not exist ({})", number))?,
-            )?;
+        if !numbers.is_empty() {
+            for number in numbers {
+                let confs: Vec<&PathBuf> = app.config(name)?.1.values().collect();
+                path::rm(
+                    confs
+                        .get(number - 1)
+                        .ok_or(format!("Config does not exist ({})", number))?,
+                )?;
+            }
         } else {
             let inst = app.instruction(name)?;
             let confs = app.config(name)?;
@@ -121,7 +126,8 @@ fn run_del(names: &Vec<String>, number: &Option<usize>) -> Result<(), String> {
 }
 
 fn run_edit(name: &String) -> Result<(), String> {
-    str_err(open::that(App::new()?.instruction(&name)?))
+    open::that(App::new()?.instruction(&name)?)
+        .or(Err(format!("Can't open file in system editor ({})", name)))
 }
 
 fn run_save(
@@ -130,22 +136,41 @@ fn run_save(
     compression: &u8,
     password: &Option<String>,
 ) -> Result<(), String> {
+    if *compression > 9 || *compression < 1 {
+        return Err(format!(
+            "The compression value must be between 1 and 9, not {}",
+            compression
+        ));
+    }
+
     let app = App::new()?;
     let (inst, inst_path) = app.parse_instruction(name)?;
-
     let tmp = path::tmp_dir()?;
-    let data = path::add(&tmp, "data");
 
-    path::cp(inst_path, path::add(&tmp, "instruction.yml"))?;
-
+    let tmp_data = &tmp.join("data");
+    let tmp_inst = &tmp.join("instruction.yml");
+    path::cp(inst_path, &tmp_inst, None)?;
     for (name, entries) in inst.save {
-        let entry_dir = path::add(&data, name);
-        for entry in &entries.add {
-            path::cp(entry, &entry_dir)?;
+        let entry_dir = tmp_data.join(name);
+        for add in &entries.add {
+            path::cp(add, &entry_dir, Some(&entries.del))?;
         }
     }
 
-    path::rm(tmp)?;
+    let path = match path {
+        Some(path) => {
+            let mut path = PathBuf::from(path);
+            if path.is_dir() {
+                path.push(format!("{name}.conman"));
+            }
+            path
+        }
+        None => app.config(name)?.0.join(PathBuf::from(
+            Local::now().format("%F %H:%M:%S.conman").to_string(),
+        )),
+    };
+    archive::zip(&path, &[tmp_data, tmp_inst], compression, password.as_ref())?;
+    path::rm(&tmp)?;
 
     Ok(())
 }

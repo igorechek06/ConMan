@@ -66,7 +66,7 @@ pub enum Action {
         #[clap(help=src::help::fields::NAME)]
         names: Vec<String>,
         #[clap(short, long, help=src::help::fields::NUMBER)]
-        number: Option<usize>,
+        number: Vec<usize>,
     },
     #[clap(about=src::help::actions::EDIT)]
     Edit {
