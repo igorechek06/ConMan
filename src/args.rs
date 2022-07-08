@@ -63,7 +63,7 @@ pub enum Action {
     },
     #[clap(about=src::help::actions::DEL)]
     Del {
-        #[clap(help=src::help::fields::NAME)]
+        #[clap(required=true, help=src::help::fields::NAME)]
         names: Vec<String>,
         #[clap(short, long, help=src::help::fields::NUMBER)]
         number: Vec<usize>,
