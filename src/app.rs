@@ -53,7 +53,7 @@ impl App {
         })
     }
 
-    pub fn contains(&self, name: &str) -> bool {
+    pub fn exist(&self, name: &str) -> bool {
         self.instructions.contains_key(name) && self.configs.contains_key(name)
     }
 
@@ -68,9 +68,41 @@ impl App {
         Ok((Instruction::from_file(path, self)?, path))
     }
 
-    pub fn config(&self, name: &str) -> Result<&(PathBuf, BTreeMap<String, PathBuf>), String> {
+    pub fn configs(&self, name: &str) -> Result<&(PathBuf, BTreeMap<String, PathBuf>), String> {
         self.configs
             .get(name)
             .ok_or(format!("Config does not exist ({})", name))
+    }
+
+    pub fn add(&self, name: &str) -> Result<(), String> {
+        if self.exist(name) {
+            return Err(format!("Instruction already exist ({})", name));
+        }
+
+        let (inst_path, conf_path) = path::config_dir()?;
+        path::mkfile(inst_path.join(format!("{}.yml", name)))?;
+        path::mkdir(conf_path.join(name))?;
+
+        Ok(())
+    }
+
+    pub fn del(&self, name: &str, numbers: &Vec<usize>) -> Result<(), String> {
+        if !numbers.is_empty() {
+            for number in numbers {
+                let confs: Vec<&PathBuf> = self.configs(name)?.1.values().collect();
+                path::rm(
+                    confs
+                        .get(number - 1)
+                        .ok_or(format!("Config does not exist ({})", number))?,
+                )?;
+            }
+        } else {
+            let inst = self.instruction(name)?;
+            let confs = self.configs(name)?;
+
+            path::rm(inst)?;
+            path::rm(&confs.0)?;
+        }
+        Ok(())
     }
 }

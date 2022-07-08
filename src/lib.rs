@@ -58,7 +58,7 @@ fn run_list(names: &Vec<String>) -> Result<(), String> {
     }
 
     for name in names {
-        if !app.contains(name) {
+        if !app.exist(name) {
             return Err(format!("Instruction does not exist ({})", name));
         }
     }
@@ -81,47 +81,17 @@ fn run_list(names: &Vec<String>) -> Result<(), String> {
 
 fn run_add(names: &Vec<String>) -> Result<(), String> {
     let app = App::new()?;
-    let (inst_path, conf_path) = path::config_dir()?;
-
     for name in names {
-        if app.contains(name) {
-            return Err(format!("Instruction already exist ({})", name));
-        }
-
-        let mut inst = inst_path.clone();
-        let mut storage = conf_path.clone();
-        inst.push(format!("{}.yml", name));
-        storage.push(name);
-
-        path::mkfile(inst)?;
-        path::mkdir(storage)?;
+        app.add(name)?;
     }
-
     Ok(())
 }
 
 fn run_del(names: &Vec<String>, numbers: &Vec<usize>) -> Result<(), String> {
     let app = App::new()?;
-
     for name in names {
-        if !numbers.is_empty() {
-            for number in numbers {
-                let confs: Vec<&PathBuf> = app.config(name)?.1.values().collect();
-                path::rm(
-                    confs
-                        .get(number - 1)
-                        .ok_or(format!("Config does not exist ({})", number))?,
-                )?;
-            }
-        } else {
-            let inst = app.instruction(name)?;
-            let confs = app.config(name)?;
-
-            path::rm(inst)?;
-            path::rm(&confs.0)?;
-        }
+        app.del(name, numbers)?;
     }
-
     Ok(())
 }
 
@@ -165,7 +135,7 @@ fn run_save(
             }
             path
         }
-        None => app.config(name)?.0.join(PathBuf::from(
+        None => app.configs(name)?.0.join(PathBuf::from(
             Local::now().format("%F %H:%M:%S.conman").to_string(),
         )),
     };
