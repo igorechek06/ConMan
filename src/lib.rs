@@ -146,7 +146,40 @@ fn run_save(
 }
 
 fn run_load(path: &String, name: &Option<String>) -> Result<(), String> {
-    todo!()
+    let mut app = App::new()?;
+    let tmp = path::tmp_dir()?;
+    let tmp_inst = &tmp.join("instruction.yml");
+    let default_name = path::name(&path)?.0;
+    let name = name.as_ref().unwrap_or(&default_name);
+
+    archive::unzip(path, &tmp)?;
+    if !tmp_inst.exists() {
+        return Err(format!(
+            "There is no instruction file in the config archive ({})",
+            path
+        ));
+    }
+    if !tmp.join("data").exists() {
+        return Err(format!(
+            "There is no data dir in the config archive ({})",
+            path
+        ));
+    }
+
+    if !app.exist(&name) {
+        app.add(&name)?;
+        path::cp(tmp_inst, &app.instruction(&name)?, None)?;
+    }
+    path::cp(
+        path,
+        app.configs(&name)?
+            .0
+            .join(Local::now().format("%F %H:%M:%S.conman").to_string()),
+        None,
+    )?;
+
+    path::rm(tmp)?;
+    Ok(())
 }
 
 fn run_use(name: &String, number: &usize) -> Result<(), String> {
