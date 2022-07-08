@@ -152,6 +152,8 @@ pub mod path {
 }
 
 pub mod archive {
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    use std::env::current_exe;
     use std::fmt::Display;
     use std::path::Path;
     use std::process::Command;
@@ -173,9 +175,18 @@ pub mod archive {
         let compression = format!("-mx{}", compression);
         let password = password.map_or("".to_string(), |p| format!("-P{}", repr(p)));
 
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        let bin_dir = str_err(current_exe())?;
+
+        #[cfg(target_os = "linux")]
+        let mut cmd = Command::new("7z");
+        #[cfg(target_os = "macos")]
+        let mut cmd = Command::new(bin_dir.join("7z"));
+        #[cfg(target_os = "windows")]
+        let mut cmd = Command::new(bin_dir.join("7z.exe"));
+
         let result = str_err(
-            Command::new("7z")
-                .arg("a")
+            cmd.arg("a")
                 .arg("-y")
                 .arg(compression)
                 .arg(password)
