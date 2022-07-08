@@ -191,7 +191,22 @@ pub mod archive {
         Ok(())
     }
 
-    // pub fn unzip<A: AsRef<Path>, O: AsRef<Path>>(archive: A, outpath: O) -> Result<(), String> {
-    //     todo!()
-    // }
+    pub fn unzip<A: AsRef<Path>, O: AsRef<Path>>(archive: A, outpath: O) -> Result<(), String> {
+        let archive = repr(archive.as_ref().display());
+        let outpath = format!("-o{}", repr(outpath.as_ref().display()));
+
+        let result = str_err(
+            Command::new("7z")
+                .arg("x")
+                .arg(archive)
+                .arg(outpath)
+                .output(),
+        )?;
+
+        if !result.status.success() {
+            eprintln!("{}", String::from_utf8(result.stderr).unwrap().trim());
+        }
+
+        Ok(())
+    }
 }
