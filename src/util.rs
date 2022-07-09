@@ -164,6 +164,20 @@ pub mod archive {
         format!(r#"{}"#, text.to_string().escape_default())
     }
 
+    fn cmd(cmd: &str) -> Result<Command, String> {
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        let bin_dir = str_err(current_exe())?;
+        let cmd = repr(cmd);
+
+        #[cfg(target_os = "linux")]
+        let cmd = Command::new(cmd);
+        #[cfg(target_os = "macos")]
+        let cmd = Command::new(bin_dir.join(cmd));
+        #[cfg(target_os = "windows")]
+        let cmd = Command::new(bin_dir.join(format!("{}.exe", cmd)));
+        Ok(cmd)
+    }
+
     pub fn zip<A: AsRef<Path>, I: AsRef<Path>>(
         archive: A,
         include: &[I],
@@ -175,18 +189,9 @@ pub mod archive {
         let compression = format!("-mx{}", compression);
         let password = password.map_or("".to_string(), |p| format!("-P{}", repr(p)));
 
-        #[cfg(any(target_os = "macos", target_os = "windows"))]
-        let bin_dir = str_err(current_exe())?;
-
-        #[cfg(target_os = "linux")]
-        let mut cmd = Command::new("7z");
-        #[cfg(target_os = "macos")]
-        let mut cmd = Command::new(bin_dir.join("7z"));
-        #[cfg(target_os = "windows")]
-        let mut cmd = Command::new(bin_dir.join("7z.exe"));
-
         let result = str_err(
-            cmd.arg("a")
+            cmd("7z")?
+                .arg("a")
                 .arg("-y")
                 .arg(compression)
                 .arg(password)
@@ -196,26 +201,39 @@ pub mod archive {
         )?;
 
         if !result.status.success() {
-            eprintln!("{}", String::from_utf8(result.stderr).unwrap().trim());
+            return Err(format!(
+                "An error occurred while creating the archive\n{}",
+                String::from_utf8(result.stderr).unwrap().trim()
+            ));
         }
 
         Ok(())
     }
 
-    pub fn unzip<A: AsRef<Path>, O: AsRef<Path>>(archive: A, outpath: O) -> Result<(), String> {
+    pub fn unzip<A: AsRef<Path>, O: AsRef<Path>>(
+        archive: A,
+        outpath: O,
+        password: Option<&String>,
+    ) -> Result<(), String> {
         let archive = repr(archive.as_ref().display());
         let outpath = format!("-o{}", repr(outpath.as_ref().display()));
+        let password = format!("-P{}", repr(password.unwrap_or(&"".to_string())));
 
         let result = str_err(
-            Command::new("7z")
+            cmd("7z")?
                 .arg("x")
+                .arg("-y")
+                .arg(password)
                 .arg(archive)
                 .arg(outpath)
                 .output(),
         )?;
 
         if !result.status.success() {
-            eprintln!("{}", String::from_utf8(result.stderr).unwrap().trim());
+            return Err(format!(
+                "An error occurred while extracting the archive\n{}",
+                String::from_utf8(result.stderr).unwrap().trim()
+            ));
         }
 
         Ok(())

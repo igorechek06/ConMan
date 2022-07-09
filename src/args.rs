@@ -92,6 +92,8 @@ pub enum Action {
         file: String,
         #[clap(help=src::help::fields::NAME)]
         name: Option<String>,
+        #[clap(short, long, help=src::help::fields::PASSWORD)]
+        password: Option<String>,
     },
     #[clap(about=src::help::actions::USE)]
     Use {

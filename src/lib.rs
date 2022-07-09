@@ -39,7 +39,11 @@ pub fn run() -> i32 {
             compression,
             password,
         } => run_save(name, path, compression, password),
-        Action::Load { file, name } => run_load(file, name),
+        Action::Load {
+            file,
+            name,
+            password,
+        } => run_load(file, name, password),
         Action::Use { name, number } => run_use(name, number),
     };
 
@@ -115,8 +119,12 @@ fn run_save(
 
     let app = App::new()?;
     let (inst, inst_path) = app.parse_instruction(name)?;
-    let tmp = path::tmp_dir()?;
 
+    if inst.save.is_empty() {
+        return Err(format!("Entities to save are not specified ({})", name));
+    }
+
+    let tmp = path::tmp_dir()?;
     let tmp_data = &tmp.join("data");
     let tmp_inst = &tmp.join("instruction.yml");
     path::cp(inst_path, &tmp_inst, None)?;
@@ -145,14 +153,14 @@ fn run_save(
     Ok(())
 }
 
-fn run_load(path: &String, name: &Option<String>) -> Result<(), String> {
+fn run_load(path: &String, name: &Option<String>, password: &Option<String>) -> Result<(), String> {
     let mut app = App::new()?;
     let tmp = path::tmp_dir()?;
     let tmp_inst = &tmp.join("instruction.yml");
     let default_name = path::name(&path)?.0;
     let name = name.as_ref().unwrap_or(&default_name);
 
-    archive::unzip(path, &tmp)?;
+    archive::unzip(path, &tmp, password.as_ref())?;
     if !tmp_inst.exists() {
         return Err(format!(
             "There is no instruction file in the config archive ({})",
