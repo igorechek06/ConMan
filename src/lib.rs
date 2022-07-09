@@ -44,7 +44,11 @@ pub fn run() -> i32 {
             name,
             password,
         } => run_load(file, name, password),
-        Action::Use { name, number } => run_use(name, number),
+        Action::Use {
+            name,
+            number,
+            password,
+        } => run_use(name, number, password),
     };
 
     if let Err(err) = &result {
@@ -155,19 +159,21 @@ fn run_save(
 
 fn run_load(path: &String, name: &Option<String>, password: &Option<String>) -> Result<(), String> {
     let mut app = App::new()?;
-    let tmp = path::tmp_dir()?;
-    let tmp_inst = &tmp.join("instruction.yml");
     let default_name = path::name(&path)?.0;
     let name = name.as_ref().unwrap_or(&default_name);
 
+    let tmp = path::tmp_dir()?;
+    let tmp_inst = &tmp.join("instruction.yml");
+    let tmp_data = &tmp.join("data");
     archive::unzip(path, &tmp, password.as_ref())?;
+
     if !tmp_inst.exists() {
         return Err(format!(
             "There is no instruction file in the config archive ({})",
             path
         ));
     }
-    if !tmp.join("data").exists() {
+    if !tmp_data.exists() {
         return Err(format!(
             "There is no data dir in the config archive ({})",
             path

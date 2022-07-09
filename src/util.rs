@@ -8,7 +8,7 @@ pub mod path {
     use super::*;
     use regex::Regex;
     use std::env::temp_dir;
-    use std::fs::{copy, create_dir_all, remove_dir_all, remove_file, File, ReadDir};
+    use std::fs::{copy, create_dir_all, remove_dir_all, remove_file, DirEntry, File};
     use std::path::{Path, PathBuf};
     use uuid::Uuid;
 
@@ -69,7 +69,7 @@ pub mod path {
             mkdir(to)?;
 
             for item in list(from)? {
-                let item = name(str_err(item)?.path())?.2;
+                let item = name(item.path())?.2;
 
                 let f = from.join(&item);
                 let t = if !f.is_dir() {
@@ -87,8 +87,12 @@ pub mod path {
         Ok(())
     }
 
-    pub fn list<P: AsRef<Path>>(path: P) -> Result<ReadDir, String> {
-        str_err(path.as_ref().read_dir())
+    pub fn list<P: AsRef<Path>>(path: P) -> Result<Vec<DirEntry>, String> {
+        let mut result = Vec::new();
+        for e in str_err(path.as_ref().read_dir())? {
+            result.push(str_err(e)?);
+        }
+        Ok(result)
     }
 
     pub fn name<P: AsRef<Path>>(path: P) -> Result<(String, Option<String>, String), String> {

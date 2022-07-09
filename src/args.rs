@@ -81,7 +81,7 @@ pub enum Action {
         name: String,
         #[clap(help=src::help::fields::PATH)]
         path: Option<String>,
-        #[clap(short, long, default_value_t = 9, help=src::help::fields::COMPRESSION)]
+        #[clap(short, long, default_value_t=9, help=src::help::fields::COMPRESSION)]
         compression: u8,
         #[clap(short, long, help=src::help::fields::PASSWORD)]
         password: Option<String>,
@@ -99,7 +99,9 @@ pub enum Action {
     Use {
         #[clap(help=src::help::fields::NAME)]
         name: String,
-        #[clap(help=src::help::fields::NUMBER)]
+        #[clap(help=src::help::fields::NUMBER, default_value_t=1)]
         number: usize,
+        #[clap(short, long, help=src::help::fields::PASSWORD)]
+        password: Option<String>,
     },
 }

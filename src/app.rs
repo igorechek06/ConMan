@@ -15,20 +15,17 @@ impl App {
 
         // Parse instructions
         for inst in path::list(path::config_dir()?.0)? {
-            let inst = str_err(inst)?;
             instructions.insert(path::name(inst.path())?.0, inst.path());
         }
 
         // Parse configs
         for conf_dir in path::list(path::config_dir()?.1)? {
-            let conf_dir = str_err(conf_dir)?;
             let conf_name = path::name(conf_dir.path())?.0;
 
             if conf_dir.path().is_dir() && instructions.contains_key(&conf_name) {
                 let mut confs = BTreeMap::new();
 
                 for conf in path::list(conf_dir.path())? {
-                    let conf = str_err(conf)?;
                     if conf.path().is_file() {
                         confs.insert(path::name(conf.path())?.0, conf.path());
                     }
@@ -72,6 +69,16 @@ impl App {
         self.configs
             .get(name)
             .ok_or(format!("Config does not exist ({})", name))
+    }
+
+    pub fn config(&self, name: &str, number: &usize) -> Result<&PathBuf, String> {
+        let configs = &self.configs(&name)?.1;
+        let keys: Vec<String> = configs.keys().cloned().collect();
+        let key = keys
+            .get(number - 1)
+            .ok_or(format!("Config does not exist ({})", number))?;
+
+        Ok(configs.get(key).unwrap())
     }
 
     pub fn add(&mut self, name: &str) -> Result<(), String> {
