@@ -17,6 +17,7 @@ use app::App;
 use args::{Action, Args};
 use chrono::Local;
 use clap::Parser;
+use settings::Instruction;
 use std::path::PathBuf;
 use util::{archive, path};
 
@@ -148,7 +149,7 @@ fn run_save(
             path
         }
         None => app.configs(name)?.0.join(PathBuf::from(
-            Local::now().format("%F %H:%M:%S.conman").to_string(),
+            Local::now().format("%F_%H:%M:%S.conman").to_string(),
         )),
     };
     archive::zip(&path, &[tmp_data, tmp_inst], compression, password.as_ref())?;
@@ -163,9 +164,10 @@ fn run_load(path: &String, name: &Option<String>, password: &Option<String>) -> 
     let name = name.as_ref().unwrap_or(&default_name);
 
     let tmp = path::tmp_dir()?;
+    archive::unzip(path, &tmp, password.as_ref())?;
+
     let tmp_inst = &tmp.join("instruction.yml");
     let tmp_data = &tmp.join("data");
-    archive::unzip(path, &tmp, password.as_ref())?;
 
     if !tmp_inst.exists() {
         return Err(format!(
@@ -182,20 +184,37 @@ fn run_load(path: &String, name: &Option<String>, password: &Option<String>) -> 
 
     if !app.exist(&name) {
         app.add(&name)?;
-        path::cp(tmp_inst, &app.instruction(&name)?, None)?;
     }
     path::cp(
         path,
         app.configs(&name)?
             .0
-            .join(Local::now().format("%F %H:%M:%S.conman").to_string()),
+            .join(Local::now().format("%F_%H:%M:%S.conman").to_string()),
         None,
     )?;
+    path::cp(tmp_inst, &app.instruction(&name)?, None)?;
 
     path::rm(tmp)?;
     Ok(())
 }
 
-fn run_use(name: &String, number: &usize) -> Result<(), String> {
-    todo!()
+fn run_use(name: &String, number: &usize, password: &Option<String>) -> Result<(), String> {
+    let app = App::new()?;
+    let config_path = app.config(&name, number)?;
+
+    let tmp = path::tmp_dir()?;
+    archive::unzip(config_path, &tmp, password.as_ref())?;
+
+    let tmp_data = &tmp.join("data");
+    let tmp_inst = Instruction::from_file(&tmp.join("instruction.yml"), &app)?;
+
+    for (name, entries) in &tmp_inst.save {
+        let to = &entries.root;
+        for from in path::list(tmp_data.join(name))? {
+            path::cp(from.path(), to, None)?;
+        }
+    }
+
+    path::rm(tmp)?;
+    Ok(())
 }

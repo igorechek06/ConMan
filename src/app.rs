@@ -1,5 +1,5 @@
 use crate::settings::Instruction;
-use crate::util::{path, str_err};
+use crate::util::path;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
@@ -102,14 +102,14 @@ impl App {
 
     pub fn del(&mut self, name: &str, numbers: &Vec<usize>) -> Result<(), String> {
         if !numbers.is_empty() {
-            for number in numbers {
-                let configs = &mut self
-                    .configs
-                    .get_mut(name)
-                    .ok_or(format!("Config does not exist ({})", name))?
-                    .1;
+            let configs = &mut self
+                .configs
+                .get_mut(name)
+                .ok_or(format!("Config does not exist ({})", name))?
+                .1;
+            let keys: Vec<String> = configs.keys().cloned().collect();
 
-                let keys: Vec<String> = configs.keys().cloned().collect();
+            for number in numbers {
                 let key = keys
                     .get(number - 1)
                     .ok_or(format!("Config does not exist ({})", number))?;

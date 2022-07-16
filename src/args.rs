@@ -99,7 +99,7 @@ pub enum Action {
     Use {
         #[clap(help=src::help::fields::NAME)]
         name: String,
-        #[clap(help=src::help::fields::NUMBER, default_value_t=1)]
+        #[clap(help=src::help::fields::NUMBER)]
         number: usize,
         #[clap(short, long, help=src::help::fields::PASSWORD)]
         password: Option<String>,

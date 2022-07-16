@@ -38,6 +38,7 @@ impl RawInstruction {
 
 #[derive(Clone)]
 pub struct Entries {
+    pub root: PathBuf,
     pub add: Vec<PathBuf>,
     pub del: Vec<PathBuf>,
 }
@@ -109,7 +110,7 @@ fn parse_entries(raw: RawEntries) -> Result<Entries, String> {
         }
     }
 
-    Ok(Entries { add, del })
+    Ok(Entries { root, add, del })
 }
 
 fn parse_include(raw: Option<Vec<String>>, app: &App) -> Result<Vec<Instruction>, String> {

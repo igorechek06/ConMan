@@ -123,7 +123,7 @@ pub mod path {
             "HOME" => dirs::home_dir(),
             "DATA" => dirs::data_dir(),
             "LOCAL" => dirs::data_local_dir(),
-            "CONFIG" => dirs::config_dir(),
+            "CONFIGS" => dirs::config_dir(),
             "PREFERENCE" => dirs::preference_dir(),
             _ => return Err(format!("Unknown path type ({})", path_type)),
         }
